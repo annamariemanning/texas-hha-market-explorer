@@ -40,6 +40,23 @@ Regenerate the interactive explorer (self-contained, opens with no server):
 .venv/bin/python -m pipeline.build_explorer   # writes texas_hha_market_explorer.html
 ```
 
+### Static map (embedded in the explorer)
+
+`figures/make_choropleth.py` renders `figures/texas_certified_density_choropleth.png`
+— Texas counties shaded by certified agencies per 10K seniors (gray = no licensed
+agencies; 4.49 benchmark marked; I-35 metros outlined). `build_explorer` base64-inlines
+this PNG into the explorer, so it stays self-contained. Regenerate the map first if the
+county numbers change:
+
+```bash
+.venv/bin/python -m pip install geopandas matplotlib
+.venv/bin/python figures/make_choropleth.py
+```
+
+It downloads the U.S. Census 2023 county cartographic boundary file to `figures/_geo/`
+(gitignored) and joins it to `outputs/county_master.csv` by the pipeline's normalized
+county names (all 254 match exactly).
+
 ## Pipeline (`pipeline/`)
 
 | Module | Responsibility |
@@ -53,7 +70,7 @@ Regenerate the interactive explorer (self-contained, opens with no server):
 | `metrics.py` | Dedup-aware counts (R1/R2): distinct agencies, by-tier, metro rollup |
 | `june_delta.py` | New/dropped license sets between snapshots |
 | `run_all.py` | Orchestrator + checkpoint verification + output writer |
-| `build_explorer.py` | Emits the self-contained `texas_hha_market_explorer.html` |
+| `build_explorer.py` | Emits the self-contained `texas_hha_market_explorer.html` (base64-embeds the county map) |
 
 ## Outputs (`outputs/`)
 
@@ -114,3 +131,6 @@ Regenerate the interactive explorer (self-contained, opens with no server):
   San Antonio, Killeen-Temple, Waco — highlighted with an orange bar).
 - Summary cards (distinct agencies, certified density, 65+ share, census range,
   whitespace) and a **June 2026 dynamics** panel (new / dropped / net by tier).
+- Embedded **statewide choropleth** (base64-inlined): counties shaded by certified
+  agencies per 10K seniors, gray = no licensed agencies, 4.49 benchmark threshold,
+  I-35 metros outlined.

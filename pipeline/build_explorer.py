@@ -4,6 +4,7 @@ Embeds the computed tables as JSON so the file opens directly in a browser with
 no server. CBSA rows use R2 dedup; county rows are labeled "agencies with a
 location in county". Run:  python -m pipeline.build_explorer
 """
+import base64
 import json
 
 from . import config, metrics, census_bounds
@@ -142,9 +143,37 @@ def assemble(b):
     return {"summary": summary, "cbsa": cbsa_rows, "county": county_rows, "tiers": TIERS}
 
 
+def map_section():
+    """Build the embedded statewide-map section, or '' if the PNG is absent.
+
+    The map is base64-inlined so the explorer stays self-contained (opens by
+    double-click, no external assets). Generate the PNG with
+    figures/make_choropleth.py; build_explorer only embeds the committed file.
+    """
+    png = config.ROOT / "figures" / "texas_certified_density_choropleth.png"
+    if not png.exists():
+        print(f"  (note: {png.name} not found — map section omitted)")
+        return ""
+    uri = "data:image/png;base64," + base64.b64encode(png.read_bytes()).decode("ascii")
+    return (
+        '  <div class="figsec">\n'
+        "    <h3>Statewide map — certified density by county</h3>\n"
+        '    <div class="figcard"><img alt="Texas counties shaded by Medicare-certified '
+        'home health agencies per 10,000 seniors (65+); gray = no licensed agencies; '
+        'I-35 corridor metros outlined in orange" src="' + uri + '"></div>\n'
+        '    <div class="note">Medicare-certified home health agencies per 10,000 '
+        "seniors (65+), by county. Gray = no licensed agencies. Sequential scale "
+        "centered on the 4.49 statewide benchmark (red threshold); I-35 corridor metros "
+        "(San Antonio, Austin, Killeen–Temple, Waco) outlined in orange. County geometry: "
+        "U.S. Census 2023 cartographic boundaries.</div>\n"
+        "  </div>\n"
+    )
+
+
 def render_html(data):
     payload = json.dumps(data, separators=(",", ":"))
-    return HTML_TEMPLATE.replace("__DATA__", payload)
+    html = HTML_TEMPLATE.replace("__DATA__", payload)
+    return html.replace("__MAPSECTION__", map_section())
 
 
 HTML_TEMPLATE = r"""<!DOCTYPE html>
@@ -203,6 +232,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .i35bar{color:var(--i35);font-weight:700}
   .key{margin:2px 2px 12px}
   .note{color:var(--muted);font-size:12px;margin:10px 2px}
+  .figsec{margin:22px 0 6px}
+  .figsec h3{margin:0 0 8px;font-size:15px}
+  .figcard{background:#f7f8fa;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+  .figcard img{max-width:100%;height:auto;border-radius:6px}
   .delta h3{margin:18px 0 8px;font-size:15px}
   .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
   .dcard{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
@@ -241,6 +274,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="tablewrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
   <div class="note" id="note"></div>
 
+__MAPSECTION__
   <div class="delta">
     <h3>June 2026 market dynamics (vs March)</h3>
     <div class="dgrid" id="delta"></div>
