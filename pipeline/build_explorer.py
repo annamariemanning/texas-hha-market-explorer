@@ -171,6 +171,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .card .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
   .card .v{font-size:22px;font-weight:600;margin-top:4px}
   .card .v small{font-size:12px;color:var(--muted);font-weight:400}
+  .card .sub2{font-size:12px;color:var(--ink);opacity:.85;margin-top:5px}
+  .card .ctx{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35}
   .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
   .seg button{background:var(--panel);color:var(--muted);border:0;padding:7px 14px;cursor:pointer;font-size:13px}
@@ -207,7 +209,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <body>
 <header>
   <h1>Texas Home Health Market Explorer</h1>
-  <div class="sub">HHSC HCSSA directory (2026-03-01 snapshot) · ACS 2024 5-Yr S0101 · OMB 2023 CBSAs.
+  <div class="sub">HHSC HCSSA directory (2026-03-01 snapshot) · ACS 2024 5-Yr S0101 · OMB 2023 core-based statistical areas (CBSAs).
+  Full HCSSA directory shown; home health tiers drive all density and caseload metrics.
   Counts are distinct agencies (unique license number), recomputed at each geography level — never summed across levels.</div>
 </header>
 <div class="wrap">
@@ -256,18 +259,29 @@ const f2 = n => n.toFixed(2);
 
 // ---- summary cards ----
 const s = DATA.summary;
+const hhCert = s.tier_distinct["Medicare-certified HH"];
+const hhLic = s.tier_distinct["Licensed-only HH"];
+const hhAgencies = hhCert + hhLic;
 const cards = [
-  ["Distinct agencies", fmt(s.agencies), "across "+fmt(s.locations)+" locations"],
-  ["Certified HH", fmt(s.tier_distinct["Medicare-certified HH"]), s.state_cert_per_10k+" per 10K seniors"],
-  ["Texas 65+", fmt(s.texas_seniors), s.senior_share+"% of population"],
-  ["Census range", fmt(s.census_lower)+"–"+fmt(s.census_upper), "clients (lower–upper)"],
-  ["Whitespace", s.whitespace_counties+" counties", "0 locations · "+s.whitespace_in_metro+" inside metros"],
+  {k:"Home health agencies", v:fmt(hhAgencies),
+   sub:fmt(hhCert)+" Medicare-certified · "+fmt(hhLic)+" licensed-only",
+   ctx:"within "+fmt(s.agencies)+" licensed agencies / "+fmt(s.locations)+" locations in the full HCSSA directory"},
+  {k:"Certified HH", v:fmt(hhCert), sub:s.state_cert_per_10k+" per 10K seniors"},
+  {k:"Texas 65+", v:fmt(s.texas_seniors), sub:s.senior_share+"% of population"},
+  {k:"Certified home health patients", v:fmt(s.tier_census["Medicare-certified HH"]),
+   sub:Math.round(s.tier_reporting["Medicare-certified HH"])+"% of certified locations reporting",
+   ctx:"all licensed service types: "+fmt(s.census_lower)+"–"+fmt(s.census_upper)+" reported clients (lower–upper bound)"},
+  {k:"Whitespace", v:s.whitespace_counties+" counties",
+   sub:"0 licensed locations (any service type) · "+s.whitespace_in_metro+" inside metros"},
 ];
 document.getElementById('bench').innerHTML =
   `<span class="below">●</span> below state benchmark — ${f2(s.state_cert_per_10k)} certified per 10K seniors (neutral = at or above)`;
 
 document.getElementById('cards').innerHTML = cards.map(c =>
-  `<div class="card"><div class="k">${c[0]}</div><div class="v">${c[1]} <small>${c[2]}</small></div></div>`
+  `<div class="card"><div class="k">${c.k}</div><div class="v">${c.v}</div>`
+  + (c.sub?`<div class="sub2">${c.sub}</div>`:'')
+  + (c.ctx?`<div class="ctx">${c.ctx}</div>`:'')
+  + `</div>`
 ).join('');
 
 // ---- table ----
@@ -277,7 +291,7 @@ const COLS = {
     ["agencies","Agencies",true],["certified","Certified",true],
     ["licensed_only","Lic-only",true],["hospice","Hospice",true],["pas","PAS",true],
     ["seniors","Seniors 65+",true],["__metric","Density",true],
-    ["census","Clients (census)",true],["cert_census","Clients (certified)",true],
+    ["census","Clients, all types (census)",true],["cert_census","Clients (certified)",true],
     ["avg_clients_certified","Clients per certified agency",true],
   ],
   county: [
@@ -285,7 +299,7 @@ const COLS = {
     ["agencies","Agencies",true],["certified","Certified",true],
     ["licensed_only","Lic-only",true],["hospice","Hospice",true],["pas","PAS",true],
     ["locations","Locations",true],["seniors","Seniors 65+",true],["__metric","Density",true],
-    ["census","Clients (census)",true],
+    ["census","Clients, all types (census)",true],
   ],
 };
 let view='cbsa', metric='cert_per_10k_sr', sortKey='__metric', sortDir=1, i35only=false, metroOnly=true, q='';
