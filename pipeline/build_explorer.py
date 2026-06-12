@@ -90,6 +90,7 @@ def assemble(b):
             "agencies_per_100k": round(float(r["agencies_per_100k_pop"]), 2),
             "census": int(round(cbsa_census.loc[cbsa, "census"])) if cbsa in cbsa_census.index else 0,
             "census_rate": round(float(cbsa_census.loc[cbsa, "rate"]) * 100, 0) if cbsa in cbsa_census.index else 0,
+            "cert_census": int(round(t.get("cert_census", 0.0))),
             "avg_clients_certified": round(t.get("avg_clients_per_certified", 0.0), 1),
         })
 
@@ -224,7 +225,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     </div>
     <label class="chk"><input type="checkbox" id="metroonly" checked> Metros only</label>
     <label class="chk"><input type="checkbox" id="i35only"> I-35 corridor only</label>
-    <span class="i35key" title="I-35 corridor"><span class="i35bar">▎</span> = I-35 corridor</span>
+    <span class="i35key" title="I-35 corridor"><span class="i35bar">▎</span> I-35 corridor</span>
     <span class="dim" id="count"></span>
   </div>
   <div class="note key" id="bench"></div>
@@ -276,7 +277,8 @@ const COLS = {
     ["agencies","Agencies",true],["certified","Certified",true],
     ["licensed_only","Lic-only",true],["hospice","Hospice",true],["pas","PAS",true],
     ["seniors","Seniors 65+",true],["__metric","Density",true],
-    ["census","Clients (census)",true],["avg_clients_certified","Clients per certified agency",true],
+    ["census","Clients (census)",true],["cert_census","Clients (certified)",true],
+    ["avg_clients_certified","Clients per certified agency",true],
   ],
   county: [
     ["county","County",false],["cbsa","CBSA",false],["type","Type",false],
@@ -331,6 +333,7 @@ function render(){
       if(c[0]==='cbsa'||c[0]==='county') return `<td>${v||'<span class=dim>—</span>'}</td>`;
       if(c[0]==='avg_clients_certified') return `<td>${v?f1(v):'<span class=dim>—</span>'}</td>`;
       if(c[0]==='census') return `<td>${v?fmt(v):'<span class=dim>—</span>'}<span class="dim" style="font-size:11px"> ${x.census_rate?(x.census_rate+'%'):''}</span></td>`;
+      if(c[0]==='cert_census') return `<td>${v?fmt(v):'<span class=dim>—</span>'}</td>`;
       return `<td>${typeof v==='number'?fmt(v):v}</td>`;
     }).join('');
     return `<tr class="${x.i35?'i35':''}">${tds}</tr>`;
