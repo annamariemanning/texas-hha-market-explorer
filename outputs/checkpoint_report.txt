@@ -1,0 +1,69 @@
+CHECKPOINT REPORT — 67/67 PASS
+========================================================================
+[PASS] March: locations (post-clean)
+[PASS] March: distinct agencies
+[PASS] March: certified distinct
+[PASS] March: licensed-only distinct
+[PASS] March: hospice distinct
+[PASS] March: PAS-only distinct
+[PASS] March: Parent rows
+[PASS] March: Branch rows
+[PASS] March: ADS rows
+[PASS] March raw: rows
+[PASS] March raw: distinct licenses (incl expired)
+[PASS] ACS: Texas total pop
+[PASS] ACS: Texas 65+
+[PASS] ACS: 65+ share %
+[PASS] State: certified per 10K seniors
+[PASS] Metro DFW: agencies
+[PASS] Metro DFW: certified
+[PASS] Metro DFW: certified per 10K seniors
+[PASS] Metro Houston: agencies
+[PASS] Metro Houston: certified
+[PASS] Metro Houston: certified per 10K seniors
+[PASS] Metro San Antonio: agencies
+[PASS] Metro San Antonio: certified
+[PASS] Metro San Antonio: certified per 10K seniors
+[PASS] Metro Austin: agencies
+[PASS] Metro Austin: certified
+[PASS] Metro Austin: certified per 10K seniors
+[PASS] Metro Killeen-Temple: agencies
+[PASS] Metro Killeen-Temple: certified
+[PASS] Metro Killeen-Temple: certified per 10K seniors
+[PASS] Metro Waco: agencies
+[PASS] Metro Waco: certified
+[PASS] Metro Waco: certified per 10K seniors
+[PASS] Metro McAllen: certified per 10K seniors
+[PASS] Metro Laredo: certified per 10K seniors
+[PASS] Census: statewide lower
+[PASS] Census: statewide upper
+[PASS] Census: certified-tier total
+[PASS] Census: certified reporting %
+[PASS] Census: PAS reporting %
+[PASS] Census: licensed-only reporting %
+[PASS] Census: hospice reporting %
+[PASS] Census: avg clients/certified agency Houston
+[PASS] Census: avg clients/certified agency DFW
+[PASS] Census: avg clients/certified agency Waco
+[PASS] Census: avg clients/certified agency San Antonio
+[PASS] Census: avg clients/certified agency Austin
+[PASS] Census: avg clients/certified agency Killeen-Temple
+[PASS] Whitespace: zero-location counties
+[PASS] Whitespace: zero-county population
+[PASS] Whitespace: zero-county seniors
+[PASS] Whitespace: zero-agency counties in metros
+[PASS] Whitespace: largest zero-agency metro county
+[PASS] Whitespace: Caldwell population
+[PASS] June: locations
+[PASS] June: distinct agencies
+[PASS] June: new licenses
+[PASS] June: dropped licenses
+[PASS] June: net change
+[PASS] June new by tier: PAS
+[PASS] June new by tier: licensed-only
+[PASS] June new by tier: hospice
+[PASS] June new by tier: certified
+[PASS] June net distinct by tier: PAS
+[PASS] June net distinct by tier: licensed-only
+[PASS] June net distinct by tier: certified
+[PASS] June net distinct by tier: hospice
