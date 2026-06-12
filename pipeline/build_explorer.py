@@ -235,7 +235,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .figsec{margin:22px 0 6px}
   .figsec h3{margin:0 0 8px;font-size:15px}
   .figcard{background:#f7f8fa;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
-  .figcard img{max-width:100%;height:auto;border-radius:6px}
+  .figcard img{max-width:760px;max-height:75vh;width:auto;height:auto;border-radius:6px}
   .delta h3{margin:18px 0 8px;font-size:15px}
   .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
   .dcard{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
