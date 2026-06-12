@@ -165,7 +165,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   header{padding:20px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
   h1{margin:0 0 4px;font-size:20px}
   .sub{color:var(--muted);font-size:13px}
-  .wrap{padding:18px 24px;max-width:1280px;margin:0 auto}
+  .wrap{padding:18px 24px;max-width:1440px;margin:0 auto}
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
   .card .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
@@ -181,11 +181,16 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     padding:7px 10px;border-radius:8px;min-width:200px;font-size:13px}
   label.chk{display:inline-flex;gap:6px;align-items:center;color:var(--muted);cursor:pointer;font-size:13px}
   table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
-  th:first-child,td:first-child{text-align:left}
-  th{position:sticky;top:0;background:var(--panel2);cursor:pointer;user-select:none;font-size:12px;color:var(--muted)}
+  th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th.tight,td.tight{padding-left:4px;padding-right:4px}
+  th{position:sticky;top:0;z-index:2;background:var(--panel2);cursor:pointer;user-select:none;font-size:12px;color:var(--muted)}
   th.on{color:var(--accent)}
+  th:first-child,td:first-child{text-align:left;position:sticky;left:0}
+  td:first-child{z-index:1;background:var(--panel)}
+  th:first-child{z-index:3}
+  td.name{max-width:200px;overflow:hidden;text-overflow:ellipsis}
   tbody tr:hover{background:#202b37}
+  tbody tr:hover td:first-child{background:#202b37}
   tr.i35 td:first-child{border-left:3px solid var(--i35);font-weight:600}
   .pill{display:inline-block;padding:1px 7px;border-radius:20px;font-size:11px;border:1px solid var(--line);color:var(--muted)}
   .pill.Metro{color:var(--accent);border-color:#2c4a6b}
@@ -291,19 +296,21 @@ const COLS = {
     ["agencies","Agencies",true],["certified","Certified",true],
     ["licensed_only","Lic-only",true],["hospice","Hospice",true],["pas","PAS",true],
     ["seniors","Seniors 65+",true],["__metric","Density",true],
-    ["census","Clients, all types (census)",true],["cert_census","Clients (certified)",true],
-    ["avg_clients_certified","Clients per certified agency",true],
+    ["census","All-type clients",true,"Clients, all licensed service types (census)"],
+    ["cert_census","Certified clients",true,"Clients in Medicare-certified home health (census)"],
+    ["avg_clients_certified","Per cert. agency",true,"Clients per certified agency (certified clients ÷ certified agencies)"],
   ],
   county: [
     ["county","County",false],["cbsa","CBSA",false],["type","Type",false],
     ["agencies","Agencies",true],["certified","Certified",true],
     ["licensed_only","Lic-only",true],["hospice","Hospice",true],["pas","PAS",true],
     ["locations","Locations",true],["seniors","Seniors 65+",true],["__metric","Density",true],
-    ["census","Clients, all types (census)",true],
+    ["census","All-type clients",true,"Clients, all licensed service types (census)"],
   ],
 };
 let view='cbsa', metric='cert_per_10k_sr', sortKey='__metric', sortDir=1, i35only=false, metroOnly=true, q='';
 const BENCH = s.state_cert_per_10k;
+const TIGHT = new Set(['agencies','certified','licensed_only','hospice','pas','locations','seniors']);
 
 function rows(){
   let r = DATA[view].slice();
@@ -323,11 +330,12 @@ function render(){
   const cols=COLS[view];
   const thead=document.querySelector('#tbl thead');
   thead.innerHTML='<tr>'+cols.map(c=>{
-    const key=c[0]==='__metric'?metric:c[0];
     const on=(sortKey===c[0]||(c[0]==='__metric'&&sortKey==='__metric'))?'on':'';
     const arrow=(sortKey===c[0])?(sortDir<0?' ▾':' ▴'):'';
     const label=c[0]==='__metric'?metricLabel():c[1];
-    return `<th class="${on}" data-k="${c[0]}">${label}${arrow}</th>`;
+    const full=c[3]||(c[0]==='__metric'?metricLabel():c[1]);
+    const cls=[on, TIGHT.has(c[0])?'tight':''].filter(Boolean).join(' ');
+    return `<th class="${cls}" data-k="${c[0]}" title="${full}">${label}${arrow}</th>`;
   }).join('')+'</tr>';
   thead.querySelectorAll('th').forEach(th=>th.onclick=()=>{
     const k=th.dataset.k;
@@ -338,17 +346,18 @@ function render(){
   const body=cols.map(()=>0);
   document.querySelector('#tbl tbody').innerHTML=r.map(x=>{
     const tds=cols.map(c=>{
+      const t=TIGHT.has(c[0])?' tight':'';
       if(c[0]==='__metric'){
         const below = metric==='cert_per_10k_sr' && x.cert_per_10k_sr < BENCH;
         return `<td class="${below?'below':''}">${below?'● ':''}${metricVal(x)}</td>`;
       }
       if(c[0]==='type') return `<td><span class="pill ${x.type}">${x.type}</span></td>`;
       let v=x[c[0]];
-      if(c[0]==='cbsa'||c[0]==='county') return `<td>${v||'<span class=dim>—</span>'}</td>`;
+      if(c[0]==='cbsa'||c[0]==='county') return `<td class="name" title="${(v||'').replace(/"/g,'&quot;')}">${v||'<span class=dim>—</span>'}</td>`;
       if(c[0]==='avg_clients_certified') return `<td>${v?f1(v):'<span class=dim>—</span>'}</td>`;
       if(c[0]==='census') return `<td>${v?fmt(v):'<span class=dim>—</span>'}<span class="dim" style="font-size:11px"> ${x.census_rate?(x.census_rate+'%'):''}</span></td>`;
       if(c[0]==='cert_census') return `<td>${v?fmt(v):'<span class=dim>—</span>'}</td>`;
-      return `<td>${typeof v==='number'?fmt(v):v}</td>`;
+      return `<td class="${t.trim()}">${typeof v==='number'?fmt(v):v}</td>`;
     }).join('');
     return `<tr class="${x.i35?'i35':''}">${tds}</tr>`;
   }).join('');
