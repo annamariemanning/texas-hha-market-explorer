@@ -190,6 +190,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .pill.Rural{color:#7d8a97}
   .tablewrap{max-height:62vh;overflow:auto;border-radius:10px}
   .dim{color:var(--muted)}
+  .below{color:var(--i35);font-weight:600}
+  .i35key{color:var(--muted);font-size:13px}
+  .i35bar{color:var(--i35);font-weight:700}
+  .key{margin:2px 2px 12px}
   .note{color:var(--muted);font-size:12px;margin:10px 2px}
   .delta h3{margin:18px 0 8px;font-size:15px}
   .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
@@ -203,7 +207,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <header>
   <h1>Texas Home Health Market Explorer</h1>
   <div class="sub">HHSC HCSSA directory (2026-03-01 snapshot) · ACS 2024 5-Yr S0101 · OMB 2023 CBSAs.
-  Counts are distinct agencies (unique License No), R2 dedup — never summed across geography levels.</div>
+  Counts are distinct agencies (unique license number), recomputed at each geography level — never summed across levels.</div>
 </header>
 <div class="wrap">
   <div class="cards" id="cards"></div>
@@ -218,9 +222,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <button data-m="cert_per_10k_sr" class="on">per 10K seniors</button>
       <button data-m="agencies_per_100k">per 100K pop</button>
     </div>
+    <label class="chk"><input type="checkbox" id="metroonly" checked> Metros only</label>
     <label class="chk"><input type="checkbox" id="i35only"> I-35 corridor only</label>
+    <span class="i35key" title="I-35 corridor"><span class="i35bar">▎</span> = I-35 corridor</span>
     <span class="dim" id="count"></span>
   </div>
+  <div class="note key" id="bench"></div>
 
   <div class="tablewrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
   <div class="note" id="note"></div>
@@ -255,6 +262,9 @@ const cards = [
   ["Census range", fmt(s.census_lower)+"–"+fmt(s.census_upper), "clients (lower–upper)"],
   ["Whitespace", s.whitespace_counties+" counties", "0 locations · "+s.whitespace_in_metro+" inside metros"],
 ];
+document.getElementById('bench').innerHTML =
+  `<span class="below">●</span> below state benchmark — ${f2(s.state_cert_per_10k)} certified per 10K seniors (neutral = at or above)`;
+
 document.getElementById('cards').innerHTML = cards.map(c =>
   `<div class="card"><div class="k">${c[0]}</div><div class="v">${c[1]} <small>${c[2]}</small></div></div>`
 ).join('');
@@ -266,7 +276,7 @@ const COLS = {
     ["agencies","Agencies",true],["certified","Certified",true],
     ["licensed_only","Lic-only",true],["hospice","Hospice",true],["pas","PAS",true],
     ["seniors","Seniors 65+",true],["__metric","Density",true],
-    ["census","Clients (census)",true],["avg_clients_certified","Avg clients/cert",true],
+    ["census","Clients (census)",true],["avg_clients_certified","Clients per certified agency",true],
   ],
   county: [
     ["county","County",false],["cbsa","CBSA",false],["type","Type",false],
@@ -276,10 +286,12 @@ const COLS = {
     ["census","Clients (census)",true],
   ],
 };
-let view='cbsa', metric='cert_per_10k_sr', sortKey='agencies', sortDir=-1, i35only=false, q='';
+let view='cbsa', metric='cert_per_10k_sr', sortKey='__metric', sortDir=1, i35only=false, metroOnly=true, q='';
+const BENCH = s.state_cert_per_10k;
 
 function rows(){
   let r = DATA[view].slice();
+  if(metroOnly) r = r.filter(x=>x.type==='Metro');
   if(i35only && view==='cbsa') r = r.filter(x=>x.i35);
   if(q){ const t=q.toLowerCase(); r=r.filter(x=>(x.cbsa+' '+(x.county||'')).toLowerCase().includes(t)); }
   const k = sortKey==='__metric'?metric:sortKey;
@@ -289,6 +301,7 @@ function rows(){
   return r;
 }
 function metricVal(x){ return metric==='cert_per_10k_sr'?f2(x.cert_per_10k_sr):f2(x.agencies_per_100k); }
+function metricLabel(){ return metric==='cert_per_10k_sr'?'Cert / 10K seniors':'Agencies / 100K pop'; }
 
 function render(){
   const cols=COLS[view];
@@ -297,7 +310,8 @@ function render(){
     const key=c[0]==='__metric'?metric:c[0];
     const on=(sortKey===c[0]||(c[0]==='__metric'&&sortKey==='__metric'))?'on':'';
     const arrow=(sortKey===c[0])?(sortDir<0?' ▾':' ▴'):'';
-    return `<th class="${on}" data-k="${c[0]}">${c[1]}${arrow}</th>`;
+    const label=c[0]==='__metric'?metricLabel():c[1];
+    return `<th class="${on}" data-k="${c[0]}">${label}${arrow}</th>`;
   }).join('')+'</tr>';
   thead.querySelectorAll('th').forEach(th=>th.onclick=()=>{
     const k=th.dataset.k;
@@ -308,7 +322,10 @@ function render(){
   const body=cols.map(()=>0);
   document.querySelector('#tbl tbody').innerHTML=r.map(x=>{
     const tds=cols.map(c=>{
-      if(c[0]==='__metric') return `<td>${metricVal(x)}</td>`;
+      if(c[0]==='__metric'){
+        const below = metric==='cert_per_10k_sr' && x.cert_per_10k_sr < BENCH;
+        return `<td class="${below?'below':''}">${below?'● ':''}${metricVal(x)}</td>`;
+      }
       if(c[0]==='type') return `<td><span class="pill ${x.type}">${x.type}</span></td>`;
       let v=x[c[0]];
       if(c[0]==='cbsa'||c[0]==='county') return `<td>${v||'<span class=dim>—</span>'}</td>`;
@@ -320,8 +337,8 @@ function render(){
   }).join('');
   document.getElementById('count').textContent=r.length+' rows';
   document.getElementById('note').innerHTML = view==='cbsa'
-    ? 'Orange bar = I-35 corridor metro. Metro totals do <b>not</b> sum to the statewide '
-      +fmt(s.agencies)+' distinct agencies (R2).'
+    ? 'Orange edge = I-35 corridor metro. Metro totals do <b>not</b> sum to the statewide '
+      +fmt(s.agencies)+' distinct agencies — counts are recomputed independently at each level.'
     : '“Agencies” = distinct License No with ≥1 location in the county.';
 }
 
@@ -337,6 +354,7 @@ document.querySelectorAll('#metric button').forEach(b=>b.onclick=()=>{
   b.classList.add('on'); metric=b.dataset.m; render();
 });
 document.getElementById('q').oninput=e=>{q=e.target.value;render();};
+document.getElementById('metroonly').onchange=e=>{metroOnly=e.target.checked;render();};
 document.getElementById('i35only').onchange=e=>{i35only=e.target.checked;render();};
 
 // ---- june delta ----
